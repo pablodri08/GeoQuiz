@@ -1,5 +1,7 @@
 package com.bignerdranch.android.geoquiz
 
+import android.app.Activity
+import android.content.Intent
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -9,10 +11,12 @@ import com.bignerdranch.android.geoquiz.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
 
+
     private var binding: ActivityMainBinding? = null
     private val quizViewModel: QuizViewModel by lazy {
         ViewModelProviders.of(this).get(QuizViewModel::class.java)
     }
+    private val requestCodeCheat = 0
 
     companion object {
         const val KEY_INDEX = "index"
@@ -27,6 +31,21 @@ class MainActivity : AppCompatActivity() {
         setupClickListener()
         setupAnswerButtonState()
         updateQuestion()
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != Activity.RESULT_OK) {
+            return
+        }
+        if (requestCode == requestCodeCheat) {
+            quizViewModel.isCheater =
+                data?.getBooleanExtra(EXTRA_ANSWER_SHOWN, false) ?: false
+        }
     }
 
     override fun onSaveInstanceState(savedInstanceState: Bundle) {
@@ -79,6 +98,11 @@ class MainActivity : AppCompatActivity() {
             setupAnswerButtonState()
             updateQuestion()
         }
+        binding?.cheatButton?.setOnClickListener {
+            val answerIsTrue = QuestionsBank.getQuestionAnswer(quizViewModel.currentIndex)
+            val intent = CheatActivity.newIntent(this@MainActivity, answerIsTrue)
+            startActivityForResult(intent, requestCodeCheat)
+        }
     }
 
     private fun setupAnswerButtonState() {
@@ -102,13 +126,20 @@ class MainActivity : AppCompatActivity() {
     private fun checkAnswer(userAnswer: Boolean) {
         val correctAnswer = QuestionsBank.getQuestionAnswer(quizViewModel.currentIndex)
         val messageResId: String
-        if (userAnswer == correctAnswer) {
-            quizViewModel.score++
-            messageResId = getString(R.string.correct_toast)
-        } else {
-            messageResId = getString(R.string.incorrect_toast)
+        when {
+            quizViewModel.isCheater -> {
+                messageResId = getString(R.string.judgment_toast)
+            }
+            userAnswer == correctAnswer -> {
+                messageResId = getString(R.string.correct_toast)
+                quizViewModel.score++
+            }
+            else -> {
+                messageResId = getString(R.string.incorrect_toast)
+            }
         }
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
+        quizViewModel.isCheater = false
         setButtonsStatus(false)
     }
 
@@ -138,4 +169,3 @@ class MainActivity : AppCompatActivity() {
         binding?.falseButton?.isEnabled = status
     }
 }
-
