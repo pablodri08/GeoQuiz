@@ -7,12 +7,12 @@ import android.widget.*
 import androidx.lifecycle.ViewModelProviders
 import com.bignerdranch.android.geoquiz.databinding.ActivityMainBinding
 
+private const val KEY_INDEX = "index"
+private const val KEY_SCORE = "score"
+private const val KEY_ANSWERSCOUNTER = "answersCounter"
 
 class MainActivity : AppCompatActivity() {
 
-    private val keyIndex = "index"
-    private val keyScore = "score"
-    private val keyAnswersCounter = "answersCounters"
     private var binding: ActivityMainBinding? = null
     private val quizViewModel: QuizViewModel by lazy {
         ViewModelProviders.of(this).get(QuizViewModel::class.java)
@@ -29,9 +29,9 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(savedInstanceState: Bundle) {
         super.onSaveInstanceState(savedInstanceState)
-        savedInstanceState.putInt(keyIndex, quizViewModel.currentIndex)
-        savedInstanceState.putInt(keyScore, quizViewModel.score)
-        savedInstanceState.putInt(keyAnswersCounter, quizViewModel.answersCounter)
+        savedInstanceState.putInt(KEY_INDEX, quizViewModel.currentIndex)
+        savedInstanceState.putInt(KEY_SCORE, quizViewModel.score)
+        savedInstanceState.putInt(KEY_ANSWERSCOUNTER, quizViewModel.answersCounter)
     }
 
     override fun onDestroy() {
@@ -46,12 +46,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun getSavedInstanceState(savedInstanceState: Bundle?) {
-        val currentIndex = savedInstanceState?.getInt(keyIndex, 0) ?: 0
-        quizViewModel.currentIndex = currentIndex
-        val score = savedInstanceState?.getInt(keyScore, 0) ?: 0
-        quizViewModel.score = score
-        val totalAnswers = savedInstanceState?.getInt(keyAnswersCounter, 0) ?: 0
-        quizViewModel.answersCounter = totalAnswers
+        quizViewModel.currentIndex = savedInstanceState?.getInt(KEY_INDEX, 0) ?: 0
+        quizViewModel.score = savedInstanceState?.getInt(KEY_SCORE, 0) ?: 0
+        quizViewModel.answersCounter = savedInstanceState?.getInt(KEY_ANSWERSCOUNTER, 0) ?: 0
     }
 
     private fun setupClickListener() {
@@ -83,10 +80,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupAnswerButtonState() {
-        if (quizViewModel.answers[quizViewModel.currentIndex]) {
-            disableButtons()
+        if (quizViewModel.answers[quizViewModel.currentIndex] == true) {
+            setButtonsStatus(false)
         } else {
-            enableButtons()
+            setButtonsStatus(true)
         }
     }
 
@@ -96,7 +93,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setAnswer() {
-        quizViewModel.answers[quizViewModel.currentIndex] = true
+        quizViewModel.answers += quizViewModel.currentIndex to true
         quizViewModel.answersCounter++
     }
 
@@ -110,7 +107,7 @@ class MainActivity : AppCompatActivity() {
             messageResId = getString(R.string.incorrect_toast)
         }
         Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
-        disableButtons()
+        setButtonsStatus(false)
     }
 
     private fun checkResult() {
@@ -134,14 +131,9 @@ class MainActivity : AppCompatActivity() {
         quizViewModel.currentIndex = (quizViewModel.currentIndex + 1) % QuestionsBank.getBankSize()
     }
 
-    private fun disableButtons() {
-        binding?.trueButton?.isEnabled = false
-        binding?.falseButton?.isEnabled = false
-    }
-
-    private fun enableButtons() {
-        binding?.trueButton?.isEnabled = true
-        binding?.falseButton?.isEnabled = true
+    private fun setButtonsStatus(status: Boolean) {
+        binding?.trueButton?.isEnabled = status
+        binding?.falseButton?.isEnabled = status
     }
 }
 
