@@ -3,64 +3,139 @@ package com.bignerdranch.android.geoquiz
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
-import android.widget.Toast
+import android.widget.*
+import androidx.lifecycle.ViewModelProviders
 import com.bignerdranch.android.geoquiz.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var binding: ActivityMainBinding
-    private var currentIndex = 0
+
+    private var binding: ActivityMainBinding? = null
+    private val quizViewModel: QuizViewModel by lazy {
+        ViewModelProviders.of(this).get(QuizViewModel::class.java)
+    }
+
+    companion object {
+        const val KEY_INDEX = "index"
+        const val KEY_SCORE = "score"
+        const val KEY_ANSWERSCOUNTER = "answersCounter"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setupViewBinding()
+        getSavedInstanceState(savedInstanceState)
         setupClickListener()
+        setupAnswerButtonState()
         updateQuestion()
     }
 
-    private fun setupClickListener() {
-        binding.trueButton.setOnClickListener { view: View ->
-            checkAnswer(true)
-        }
-        binding.falseButton.setOnClickListener { view: View ->
-            checkAnswer(false)
-        }
-        binding.nextButton.setOnClickListener {
-            currentIndex = (currentIndex + 1) % QuestionsBank.getBankSize()
-            updateQuestion()
-        }
-        binding.prevButton.setOnClickListener {
-            if (currentIndex - 1 < 0) {
-                currentIndex = QuestionsBank.getBankSize() - 1
-            } else {
-                currentIndex = (currentIndex - 1) % QuestionsBank.getBankSize()
-            }
-            updateQuestion()
-        }
-        binding.questionTextView.setOnClickListener { view: View ->
-            currentIndex = (currentIndex + 1) % QuestionsBank.getBankSize()
-            updateQuestion()
-        }
+    override fun onSaveInstanceState(savedInstanceState: Bundle) {
+        super.onSaveInstanceState(savedInstanceState)
+        savedInstanceState.putInt(KEY_INDEX, quizViewModel.currentIndex)
+        savedInstanceState.putInt(KEY_SCORE, quizViewModel.score)
+        savedInstanceState.putInt(KEY_ANSWERSCOUNTER, quizViewModel.answersCounter)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        binding = null
     }
 
     private fun setupViewBinding() {
         binding = ActivityMainBinding.inflate(layoutInflater)
-        val view = binding.root
+        val view = binding?.root
         setContentView(view)
     }
 
+    private fun getSavedInstanceState(savedInstanceState: Bundle?) {
+        quizViewModel.currentIndex = savedInstanceState?.getInt(KEY_INDEX, 0) ?: 0
+        quizViewModel.score = savedInstanceState?.getInt(KEY_SCORE, 0) ?: 0
+        quizViewModel.answersCounter = savedInstanceState?.getInt(KEY_ANSWERSCOUNTER, 0) ?: 0
+    }
+
+    private fun setupClickListener() {
+        binding?.trueButton?.setOnClickListener { view: View ->
+            setAnswer()
+            checkAnswer(true)
+            checkResult()
+        }
+        binding?.falseButton?.setOnClickListener { view: View ->
+            setAnswer()
+            checkAnswer(false)
+            checkResult()
+        }
+        binding?.nextButton?.setOnClickListener {
+            moveToNext()
+            setupAnswerButtonState()
+            updateQuestion()
+        }
+        binding?.prevButton?.setOnClickListener {
+            moveToPrev()
+            setupAnswerButtonState()
+            updateQuestion()
+        }
+        binding?.questionTextView?.setOnClickListener { view: View ->
+            moveToNext()
+            setupAnswerButtonState()
+            updateQuestion()
+        }
+    }
+
+    private fun setupAnswerButtonState() {
+        if (quizViewModel.answers[quizViewModel.currentIndex]!!) {
+            setButtonsStatus(false)
+        } else {
+            setButtonsStatus(true)
+        }
+    }
+
     private fun updateQuestion() {
-        val questionTextResId = QuestionsBank.getQuestionText(currentIndex)
-        binding.questionTextView.setText(questionTextResId)
+        val questionTextResId = QuestionsBank.getQuestionText(quizViewModel.currentIndex)
+        binding?.questionTextView?.setText(questionTextResId)
+    }
+
+    private fun setAnswer() {
+        quizViewModel.answers += quizViewModel.currentIndex to true
+        quizViewModel.answersCounter++
     }
 
     private fun checkAnswer(userAnswer: Boolean) {
-        val correctAnswer = QuestionsBank.getQuestionAnswer(currentIndex)
-        val messageResId = if (userAnswer == correctAnswer) {
-            R.string.correct_toast
+        val correctAnswer = QuestionsBank.getQuestionAnswer(quizViewModel.currentIndex)
+        val messageResId: String
+        if (userAnswer == correctAnswer) {
+            quizViewModel.score++
+            messageResId = getString(R.string.correct_toast)
         } else {
-            R.string.incorrect_toast
+            messageResId = getString(R.string.incorrect_toast)
         }
-        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT)
-                .show()
+        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show()
+        setButtonsStatus(false)
+    }
+
+    private fun checkResult() {
+        if (quizViewModel.answersCounter == QuestionsBank.getBankSize()) {
+            val result = ((quizViewModel.score.toDouble() / quizViewModel.answersCounter) * 100)
+            var resultMessage = getString(R.string.quizResult).plus(result)
+            Toast.makeText(this, resultMessage, Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun moveToPrev() {
+        quizViewModel.currentIndex =
+            if (quizViewModel.currentIndex - 1 < 0) {
+                QuestionsBank.getBankSize() - 1
+            } else {
+                quizViewModel.currentIndex - 1
+            }
+    }
+
+    private fun moveToNext() {
+        quizViewModel.currentIndex = (quizViewModel.currentIndex + 1) % QuestionsBank.getBankSize()
+    }
+
+    private fun setButtonsStatus(status: Boolean) {
+        binding?.trueButton?.isEnabled = status
+        binding?.falseButton?.isEnabled = status
     }
 }
+
