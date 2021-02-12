@@ -7,15 +7,17 @@ import android.widget.*
 import androidx.lifecycle.ViewModelProviders
 import com.bignerdranch.android.geoquiz.databinding.ActivityMainBinding
 
-private const val KEY_INDEX = "index"
-private const val KEY_SCORE = "score"
-private const val KEY_ANSWERSCOUNTER = "answersCounter"
-
 class MainActivity : AppCompatActivity() {
 
     private var binding: ActivityMainBinding? = null
     private val quizViewModel: QuizViewModel by lazy {
         ViewModelProviders.of(this).get(QuizViewModel::class.java)
+    }
+
+    companion object {
+        const val KEY_INDEX = "index"
+        const val KEY_SCORE = "score"
+        const val KEY_ANSWERSCOUNTER = "answersCounter"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,7 +82,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupAnswerButtonState() {
-        if (quizViewModel.answers[quizViewModel.currentIndex] == true) {
+        if (quizViewModel.answers[quizViewModel.currentIndex]!!) {
             setButtonsStatus(false)
         } else {
             setButtonsStatus(true)
