@@ -29,7 +29,7 @@ class MainActivity : AppCompatActivity() {
         setupViewBinding()
         getSavedInstanceState(savedInstanceState)
         setupClickListener()
-        setupAnswerButtonState()
+        setButtonsStatus(quizViewModel.answers[quizViewModel.currentIndex]!!)
         updateQuestion()
     }
 
@@ -85,31 +85,23 @@ class MainActivity : AppCompatActivity() {
         }
         binding?.nextButton?.setOnClickListener {
             moveToNext()
-            setupAnswerButtonState()
+            setButtonsStatus(quizViewModel.answers[quizViewModel.currentIndex]!!)
             updateQuestion()
         }
         binding?.prevButton?.setOnClickListener {
             moveToPrev()
-            setupAnswerButtonState()
+            setButtonsStatus(quizViewModel.answers[quizViewModel.currentIndex]!!)
             updateQuestion()
         }
         binding?.questionTextView?.setOnClickListener { view: View ->
             moveToNext()
-            setupAnswerButtonState()
+            setButtonsStatus(quizViewModel.answers[quizViewModel.currentIndex]!!)
             updateQuestion()
         }
         binding?.cheatButton?.setOnClickListener {
             val answerIsTrue = QuestionsBank.getQuestionAnswer(quizViewModel.currentIndex)
             val intent = CheatActivity.newIntent(this@MainActivity, answerIsTrue)
             startActivityForResult(intent, requestCodeCheat)
-        }
-    }
-
-    private fun setupAnswerButtonState() {
-        if (quizViewModel.answers[quizViewModel.currentIndex]!!) {
-            setButtonsStatus(false)
-        } else {
-            setButtonsStatus(true)
         }
     }
 
